@@ -9,7 +9,6 @@ import string
 
 from api import *
 
-conn = sqlite3.connect('main.db')
 
 #Public--------------------------------------------------------------------------------------------
 # ||

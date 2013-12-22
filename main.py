@@ -1,35 +1,40 @@
 import sqlite3
 from bottle import *
-from dbus.decorators import method
-from api import *
+import api.users
+import api.messages
 
-conn = sqlite3.connect('main.db')
-curs = conn.cursor()
+class ConnectionHandler():
+    def __init__(self, loc='main.db'):
+        self.connection = sqlite3.connect(loc)
+        self.semaphore = threading.Semaphore()
 
+    def get(self):
+        self.semaphore.acquire()
+        return self.connection
+
+    def release(self):
+        self.semaphore.release()
+
+connHandler = ConnectionHandler()
+userHandler = api.users.UserHandler(connHandler)
 
 #VIEWS#
+@route('/')
+def homepage():
+    return static_file('home.html',root='views')
 
+
+#Public-API#
 @route('/usersubmit', method = 'POST')
 def registerUser():
     fullname = request.forms.get('fullname')
     username = request.forms.get('username')
     password = request.forms.get('password')
-    if len(fullname) > 255 or len(username) > 255 or len(password) > 255:
-        return "<p>One field was too long</p>"
-    else:
-        curs.execute("INSERT INTO users VALUES ('{0}','{1}','{2}')".format(username,password,fullname))
-        conn.commit()
-        return "<p>Welcome {0}!</p>".format(fullname)
-        
+    userHandler.create(username,password,fullname)
 
 @route('/newuser')
 def newuserPage():
     return static_file('newuser.html', root='')
-
-
-@route('/')
-def index():
-    return "hello!"
 
 run(host='localhost', port=8080)
 
